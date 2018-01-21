@@ -59,6 +59,7 @@ export default {
 .search {
   position: relative;
   margin-top: 1.2em;
+  margin-bottom: 0.8em;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
 }
 
