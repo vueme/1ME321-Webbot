@@ -64,7 +64,7 @@ class L2Parser
     public function hasRelativeImgAddress()
     {
         foreach ($this->htmlObject->find('img') as $e) {
-            if (strpos($e->src, 'http') !== 0) {
+            if (strpos(strtolower($e->src), 'http') !== 0) {
                 return true;
             }
         }
@@ -78,7 +78,7 @@ class L2Parser
     public function hasAbsoluteUrl()
     {
         foreach ($this->htmlObject->find('a') as $e) {
-            if (strpos($e->href, 'http') === 0) {
+            if (strpos(strtolower($e->href), 'http') === 0) {
                 return true;
             }
         }
