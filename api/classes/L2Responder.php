@@ -18,6 +18,7 @@ class L2Responder
             $this->addResult($this->getRelativeImgResponse());
             $this->addResult($this->getHasAbsoluteUrlResponse());
             $this->addResult($this->getDoldUrlResponse());
+            $this->addResult($this->getBrokenLinksResponse());
             $this->addResult($this->getEntityResponse());
             $this->addResult($this->getParagraphTagsResponse());
 
@@ -144,6 +145,39 @@ class L2Responder
         $com = 'JavaScript får inte användas. Ta bort all JavaScript-kod.';
 
         return $this->respond($req, false, $com);
+    }
+
+    // @TODO Fix this mess
+    public function getBrokenLinksResponse()
+    {
+        $result = $this->parser->getBrokenLinks();
+        $broken = $result['BROKEN'];
+        $skipped = $result['SKIPPED'];
+
+        $reqPass = 'Inga brutna länkar hittades';
+        $comPass = null;
+
+        $reqFail = 'Brutna länkar hittades';
+        $comFail = "Följande länkar är brutna på ingångssidan ";
+
+        if ($skipped > 0) {
+            $comPass = "Några länkar hoppades över eftersom dessa pekar till filer inuti dold-mappen.";
+            $comFail .= "(några länkar hoppades över eftersom dessa pekar till filer inuti dold-mappen):";
+        }
+
+        $comFail .= '<ul>';
+
+        foreach ($broken as $link) {
+            $comFail .= "<li>$link</li>";
+        }
+
+        $comFail .= '</ul>';
+
+        if ($skipped > 0) {
+            return count($broken) == 0 ? $this->respond($reqPass, true, $comPass) : $this->respond($reqFail, false, $comFail);
+        }
+
+        return count($broken) == 0 ? $this->respond($reqPass, true) : $this->respond($reqFail, false, $comFail);
     }
 
     private function respond($requirement, $status, $comment=null)

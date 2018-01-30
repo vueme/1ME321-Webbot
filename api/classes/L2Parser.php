@@ -1,6 +1,8 @@
 <?php
 require_once(__DIR__ . '/../libs/simple_html_dom.php');
 require_once(__DIR__ . '/service/HTTPTools.php');
+require_once(__DIR__ . '/service/Util.php');
+require_once(__DIR__ . '/Link.php');
 
 class L2Parser
 {
@@ -65,7 +67,7 @@ class L2Parser
     public function hasRelativeImgAddress()
     {
         foreach ($this->htmlObject->find('img[src]') as $e) {
-            if (strpos(strtolower($e->src), 'http://') !== 0 || strpos(strtolower($e->src), 'https://') !== 0) {
+            if (!Util::startsWith($e->src, 'http://') || !Util::startsWith($e->src, 'https://')) {
                 return true;
             }
         }
@@ -79,7 +81,7 @@ class L2Parser
     public function hasAbsoluteUrl()
     {
         foreach ($this->htmlObject->find('a[href]') as $e) {
-            if (strpos(strtolower($e->href), 'http://') === 0 || strpos(strtolower($e->href), 'https://') === 0) {
+            if (Util::startsWith($e->href, 'http://') || Util::startsWith($e->href, 'https://')) {
                 return true;
             }
         }
@@ -93,7 +95,7 @@ class L2Parser
     public function hasRelativeDoldUrl()
     {
         foreach ($this->htmlObject->find('a[href]') as $e) {
-            if (strpos(strtolower($e->href), 'dold/') === 0) {
+            if (Util::startsWith($e->href, 'dold/') || Util::startsWith($e->href, './dold/')) {
                 return true;
             }
         }
@@ -137,6 +139,38 @@ class L2Parser
     }
 
     /**
+     * Searches for broken links (href and img only) in current htmlObject.
+     * @return Array where ['BROKEN'] array contains broken links and
+     * ['SKIPPED'] is an Integer with amount of not scanned links.
+     */
+    public function getBrokenLinks()
+    {
+        $resources = [];
+        $links['BROKEN'] = [];
+        $links['SKIPPED'] = 0;
+
+        foreach ($this->htmlObject->find('a[href]') as $e) {
+            if (!Util::startsWith($e->href, 'mailto:') && !Util::startsWith($e->href, '#')) {
+                $resources[] = new Link($e->href, $this->student->getUsername());
+            }
+        }
+
+        foreach ($this->htmlObject->find('img[src]') as $e) {
+            $resources[] = new Link($e->src, $this->student->getUsername());
+        }
+
+        foreach ($resources as $link) {
+            if ($link->isNotFound()) {
+                $links['BROKEN'][] = $link->getUrl();
+            } elseif (!$link->isPublic()) {
+                $links['SKIPPED']++;
+            }
+        }
+
+        return $links;
+    }
+
+    /**
      * Checks if students FirstClass account contains an index-page (index.html or index.htm)
      * @return Boolean
      */
@@ -145,7 +179,7 @@ class L2Parser
         $pagesToCheck = ['index.html', 'index.htm'];
 
         foreach ($pagesToCheck as $page) {
-            if (HTTPTools::getHttpStatusCode($this->student->getHomeUrl() . '/' . $page) == 200) {
+            if (HTTPTools::getHttpCode($this->student->getHomeUrl() . '/' . $page) == 200) {
                 return true;
             }
         }
